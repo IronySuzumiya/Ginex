@@ -69,6 +69,16 @@ labels_mmap[:] = labels[:]
 labels_mmap.flush()
 print('Done!')
 
+class NpEncoder(json.JSONEncoder):
+  def default(self, obj):
+    if isinstance(obj, np.integer):
+      return int(obj)
+    if isinstance(obj, np.floating):
+      return float(obj)
+    if isinstance(obj, np.ndarray):
+      return obj.tolist()
+    return super(NpEncoder, self).default(obj)
+
 print('Making conf file...')
 mmap_config = dict()
 mmap_config['num_nodes'] = dataset[0].num_nodes
@@ -85,7 +95,7 @@ mmap_config['features_dtype'] = str(features_mmap.dtype)
 mmap_config['labels_shape'] = tuple(labels_mmap.shape)
 mmap_config['labels_dtype'] = str(labels_mmap.dtype)
 mmap_config['num_classes'] = dataset.num_classes
-json.dump(mmap_config, open(conf_path, 'w'))
+json.dump(mmap_config, open(conf_path, 'w'), cls=NpEncoder)
 print('Done!')
 
 print('Saving split index...')
