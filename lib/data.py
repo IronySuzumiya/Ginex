@@ -18,16 +18,16 @@ def get_mmap_dataset(path='../dataset/ogbn-papers100M-ginex', split_idx_path=Non
     indices = np.memmap(indices_path, mode='r', shape=tuple(conf['indices_shape']), dtype=conf['indices_dtype'])
     features_shape = conf['features_shape']
     features = np.memmap(features_path, mode='r', shape=tuple(features_shape), dtype=conf['features_dtype'])
-    labels = np.fromfile(labels_path, dtype=conf['labels_dtype'], count=conf['num_nodes']).reshape(tuple([conf['labels_shape'][0]]))
+    labels = np.fromfile(labels_path, dtype=conf['labels_dtype'], count=int(conf['num_nodes'])).reshape(tuple([conf['labels_shape'][0]]))
 
     indptr = torch.from_numpy(indptr)
     indices = torch.from_numpy(indices)
     features = torch.from_numpy(features)
     labels = torch.from_numpy(labels)
 
-    num_nodes = conf['num_nodes']
+    num_nodes = int(conf['num_nodes'])
     num_features = conf['features_shape'][1]
-    num_classes = conf['num_classes']
+    num_classes = int(conf['num_classes'])
 
     split_idx = torch.load(split_idx_path)
     train_idx = split_idx['train']
@@ -53,9 +53,9 @@ class GinexDataset():
 
         self.score_path = score_path
 
-        self.num_nodes = self.conf['num_nodes']
+        self.num_nodes = int(self.conf['num_nodes'])
         self.num_features = self.conf['features_shape'][1]
-        self.num_classes = self.conf['num_classes']
+        self.num_classes = int(self.conf['num_classes'])
 
 
     # Return indptr & indices
