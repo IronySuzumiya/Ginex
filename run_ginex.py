@@ -66,6 +66,11 @@ torch.cuda.set_device(device)
 model = SAGE(num_features, args.num_hiddens, num_classes, num_layers=len(sizes))
 model = model.to(device)
 
+inspect_time = 0
+switch_time = 0
+data_preparation_time = 0
+transfer_time = 0
+compute_time = 0
 
 def inspect(i, last, mode='train'):
     # Same effect of `sysctl -w vm.drop_caches=1`
@@ -173,6 +178,12 @@ def delete_trace(i):
 
 
 def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
+    global data_preparation_time
+    global transfer_time
+    global compute_time
+
+    start = time.time()
+
     if last:
         if mode == 'train':
             num_iter = int((dataset.shuffled_train_idx.numel()%(args.sb_size*args.batch_size) + args.batch_size-1) / args.batch_size)
@@ -198,7 +209,11 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
     out_indices_q = Queue(maxsize=2)
     gather_q = Queue(maxsize=1)
 
+    data_preparation_time += time.time() - start
+
     for idx in range(num_iter):
+        start = time.time()
+
         batch_size = args.batch_size
         if idx == 0:
             # Sample
@@ -246,11 +261,19 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
             gather_loader = threading.Thread(target=gather, args=(gather_q, n_id, cache, batch_size), daemon=True)
             gather_loader.start()
 
+        data_preparation_time += time.time() - start
+
+        start = time.time()
+
         # Transfer
         batch_inputs_cuda = batch_inputs.to(device)
         batch_labels_cuda = batch_labels.to(device)
         adjs_host = adjs_q.get()
         adjs = [adj.to(device) for adj in adjs_host]
+
+        transfer_time += time.time() - start
+
+        start = time.time()
 
         # Forward
         out = model(batch_inputs_cuda, adjs)
@@ -261,6 +284,10 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+
+        compute_time += time.time() - start
+
+        start = time.time()
 
         # Free
         total_loss += float(loss)
@@ -278,10 +305,15 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
         tensor_free(batch_inputs)
         pbar.update(batch_size)
 
+        data_preparation_time += time.time() - start
+
     return total_loss, total_correct
 
 
 def train(epoch):
+    global inspect_time
+    global switch_time
+
     model.train()
 
     dataset.make_new_shuffled_train_idx()
@@ -300,8 +332,10 @@ def train(epoch):
         # Superbatch sample
         if args.verbose:
             tqdm.write ('Step 1: Superbatch Sample')
+        start = time.time()
         cache, initial_cache_indices  = inspect(i, last=(i==num_sb), mode='train')
         torch.cuda.synchronize()
+        inspect_time += time.time() - start
         if args.verbose:
             tqdm.write ('Step 1: Done')
 
@@ -311,8 +345,10 @@ def train(epoch):
         # Switch
         if args.verbose:
             tqdm.write ('Step 2: Switch')
+        start = time.time()
         cache = switch(cache, initial_cache_indices)
         torch.cuda.synchronize()
+        switch_time += time.time() - start
         if args.verbose:
             tqdm.write ('Step 2: Done')
 
@@ -411,6 +447,18 @@ if __name__=='__main__':
         end = time.time()
         tqdm.write(f'Epoch {epoch:02d}, Loss: {loss:.4f}, Approx. Train: {acc:.4f}')
         tqdm.write('Epoch time: {:.4f} ms'.format((end - start) * 1000))
+
+        tqdm.write('inspect time: {:.4f} ms'.format(inspect_time * 1000))
+        tqdm.write('switch time: {:.4f} ms'.format(switch_time * 1000))
+        tqdm.write('data_preparation time: {:.4f} ms'.format(data_preparation_time * 1000))
+        tqdm.write('transfer time: {:.4f} ms'.format(transfer_time * 1000))
+        tqdm.write('compute time: {:.4f} ms'.format(compute_time * 1000))
+
+        inspect_time = 0
+        switch_time = 0
+        data_preparation_time = 0
+        transfer_time = 0
+        compute_time = 0
 
         if epoch > 3 and not args.train_only:
             val_loss, val_acc = inference(mode='valid')
