@@ -9,6 +9,7 @@ from tqdm import tqdm
 import threading
 from queue import Queue
 from sage import SAGE
+from gcn import GCN
 
 from lib.data import *
 from lib.cache import *
@@ -25,7 +26,7 @@ argparser.add_argument('--num-workers', type=int, default=os.cpu_count()*2)
 argparser.add_argument('--num-hiddens', type=int, default=256)
 argparser.add_argument('--dataset', type=str, default='ogbn-papers100M')
 argparser.add_argument('--exp-name', type=str, default=None)
-argparser.add_argument('--sizes', type=str, default='10,10,10')
+argparser.add_argument('--sizes', type=str, default='-1,-1')
 argparser.add_argument('--sb-size', type=int, default='1000')
 argparser.add_argument('--feature-cache-size', type=float, default=500000000)
 argparser.add_argument('--trace-load-num-threads', type=int, default=4)
@@ -63,7 +64,7 @@ if args.verbose:
 # Define model
 device = torch.device('cuda:%d' % args.gpu)
 torch.cuda.set_device(device)
-model = SAGE(num_features, args.num_hiddens, num_classes, num_layers=len(sizes))
+model = GCN(num_features, args.num_hiddens, num_classes, num_layers=len(sizes))
 model = model.to(device)
 
 inspect_time = 0
