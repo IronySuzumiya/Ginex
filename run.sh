@@ -1,8 +1,17 @@
-mkdir exp
-mkdir exp/ogbn-products
-mkdir exp/ogbn-papers100M
-mkdir exp/soc-twitter-mpi-sws
-mkdir exp/soc-friendster
+mkdir -p exp/ogbn-products/m8gb
+mkdir -p exp/ogbn-papers100M/m8gb
+mkdir -p exp/soc-twitter-mpi-sws/m8gb
+mkdir -p exp/soc-friendster/m8gb
+
+mkdir -p exp/ogbn-products/m4gb
+mkdir -p exp/ogbn-papers100M/m4gb
+mkdir -p exp/soc-twitter-mpi-sws/m4gb
+mkdir -p exp/soc-friendster/m4gb
+
+mkdir -p exp/ogbn-products/m16gb
+mkdir -p exp/ogbn-papers100M/m16gb
+mkdir -p exp/soc-twitter-mpi-sws/m16gb
+mkdir -p exp/soc-friendster/m16gb
 
 
 

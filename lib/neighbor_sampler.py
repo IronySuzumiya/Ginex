@@ -103,7 +103,7 @@ class GinexNeighborSampler(torch.utils.data.DataLoader):
         adjs = []
         n_id = batch
         for size in self.sizes:
-            adj_t, n_id = sample_adj_ginex(self.indptr, self.indices, n_id, size, False, self.cache_data, self.address_table)
+            adj_t, n_id = sample_adj_ginex(self.indptr, self.indices, n_id, size, True, self.cache_data, self.address_table)
             
             e_id = adj_t.storage.value()
             size = adj_t.sparse_sizes()[::-1]
