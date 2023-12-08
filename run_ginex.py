@@ -66,10 +66,7 @@ if args.verbose:
 device = torch.device('cuda:%d' % args.gpu)
 torch.cuda.set_device(device)
 
-if args.model == 'graphsage':
-    model = SAGE(num_features, args.num_hiddens, num_classes, num_layers=len(sizes))
-elif args.model == 'gcn':
-    model = GCN(num_features, args.num_hiddens, num_classes, num_layers=len(sizes))
+model = SAGE(num_features, args.num_hiddens, num_classes, num_layers=len(sizes))
 
 model = model.to(device)
 
